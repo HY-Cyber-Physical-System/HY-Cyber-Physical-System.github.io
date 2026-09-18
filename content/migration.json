@@ -1,0 +1,43 @@
+{
+  "checked_on": "2026-09-17",
+  "source_links": [
+    {
+      "url": "https://cpslab.hanyang.ac.kr/_CPS/paper/domconf_68.pdf",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "url": "https://cpslab.hanyang.ac.kr/_CPS/paper/intlconf_43.pdf",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "url": "https://cpslab.hanyang.ac.kr/_CPS/paper/intlconf_46.pdf",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "url": "https://cpslab.hanyang.ac.kr/_CPS/paper/intlconf_46p.pdf",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "url": "https://cpslab.hanyang.ac.kr/_CPS/paper/intlconf_50.pdf",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "url": "https://cpslab.hanyang.ac.kr/_CPS/paper/intlconf_69.pdf",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "url": "https://cpslab.hanyang.ac.kr/courses/os2019/detail/151",
+      "status": 200,
+      "final": "https://cpslab.hanyang.ac.kr/login/?next=/courses/os2019/detail/151",
+      "type": "text/html; charset=utf-8",
+      "size": 6959
+    },
+    {
+      "url": "https://cpslab.hanyang.ac.kr/login?next=/courses/os2019",
+      "status": 200,
+      "final": "https://cpslab.hanyang.ac.kr/login/?next=/courses/os2019",
+      "type": "text/html; charset=utf-8",
+      "size": 6948
+    }
+  ]
+}
