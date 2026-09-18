@@ -73,8 +73,8 @@ uniform float uLogo;
 uniform float uWave;
 uniform float uIntro;
 uniform vec2 uPointer;
-varying float vAlpha;
-varying float vShade;
+varying mediump float vAlpha;
+varying mediump float vShade;
 void main() {
   float spread = smoothstep(0.02, 0.88, uScatter);
   vec3 p = aPosition;
@@ -98,8 +98,8 @@ void main() {
 }`;
 export const fragmentShader = `
 precision mediump float;
-varying float vAlpha;
-varying float vShade;
+varying mediump float vAlpha;
+varying mediump float vShade;
 void main() {
   float radius = length(gl_PointCoord - vec2(0.5));
   float glow = 1.0 - smoothstep(0.1, 0.5, radius);

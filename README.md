@@ -49,7 +49,7 @@ The first screen is a black, scroll-linked 3D particle wordmark. White points ar
 
 No third-party animation runtime or CDN is used. Mobile devices use fewer points and a lower pixel-ratio cap. Offscreen WebGL scenes do not draw; rendering also stops when the tab is hidden. The pause control and system reduced-motion preference disable automatic motion. Static HTML, navigation, the solid CPSLAB wordmark, and content remain available when JavaScript or WebGL is unavailable.
 
-Validation includes the existing static checks, JavaScript syntax, geometry/scroll tests, and native OpenGL shader compilation (GLSL 1.20 with precision declarations removed). This shader check is not a browser compatibility or device frame-rate measurement.
+Validation includes the existing static checks, JavaScript syntax, geometry/scroll tests, and native OpenGL shader compilation (GLSL 1.20 with ES precision qualifiers removed). This shader check is not a browser compatibility or device frame-rate measurement.
 
 ## Re-importing the source (optional)
 
