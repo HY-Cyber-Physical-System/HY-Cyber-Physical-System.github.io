@@ -46,10 +46,11 @@ The first screen is a black, scroll-linked 3D particle wordmark. White points ar
 - `assets/motion.mjs`: scroll progression, visibility scheduling, pointer response, reveal effects, and motion preferences.
 - `assets/motion.css`: black intro, sticky scene, scene slots, and interface transitions.
 - `scripts/check_motion.mjs`: geometry, logo-depth, scroll-boundary, and fallback checks.
+- `scripts/browser_motion_check.cjs`: mobile Chromium/WebKit frame-change checks, autoplay with reduced motion and saved pause preferences, scroll, reload, denied WebGL, and context loss. Requires Playwright and its WebKit browser; set `CPSLAB_PLAYWRIGHT_MODULE` for a separate test installation and `CPSLAB_TEST_URL` to change the default `http://localhost:8000/`.
 
-No third-party animation runtime or CDN is used. Mobile devices use fewer points and a lower pixel-ratio cap. Offscreen WebGL scenes do not draw; rendering also stops when the tab is hidden. The pause control and system reduced-motion preference disable automatic motion. Static HTML, navigation, the solid CPSLAB wordmark, and content remain available when JavaScript or WebGL is unavailable.
+No third-party animation runtime or CDN is used. Mobile devices use fewer points and a lower pixel-ratio cap. Offscreen WebGL scenes do not draw; rendering also stops when the tab is hidden. Animation always starts on entry, including when system reduced motion is enabled or an older visit saved a paused preference. This is the requested autoplay policy. The pause control applies only to the current visit; reloading starts playback again. Static HTML, navigation, the solid CPSLAB wordmark, and content remain available without JavaScript. If WebGL is unavailable or its context is lost, a Canvas 2D renderer projects the same 3D point clouds so animation continues.
 
-Validation includes the existing static checks, JavaScript syntax, geometry/scroll tests, and native OpenGL shader compilation (GLSL 1.20 with ES precision qualifiers removed). This shader check is not a browser compatibility or device frame-rate measurement.
+Validation includes the existing static checks, JavaScript syntax, geometry/scroll tests, and native OpenGL shader compilation (GLSL 1.20 with ES precision qualifiers removed). Mobile browser checks use isolated Chromium and WebKit engines; these are emulations, not physical phone frame-rate measurements. Asset URLs include content hashes so fixes are not masked by stale JavaScript caches.
 
 ## Re-importing the source (optional)
 

@@ -1,11 +1,10 @@
-import { ParticleScene, makeGeometry, sampleLogo, clamp, scrollProgress } from './particles.mjs';
+import { ParticleScene, CanvasParticleScene, makeGeometry, sampleLogo, clamp, scrollProgress } from './particles.mjs?v=90543d0e22aa';
 
-const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 const coarse = matchMedia('(pointer: coarse)');
 const root = document.documentElement;
 const control = document.querySelector('.motion-toggle');
-let paused = reduced.matches;
-try { paused ||= localStorage.getItem('cpslab-motion') === 'off'; } catch { /* Storage is optional. */ }
+// Always autoplay on entry, as requested. Pause is only for this page visit.
+let paused = false;
 let frame = 0, previous = 0, elapsed = 0, ready = false;
 const scenes = [], effects = [];
 const pointer = [0, 0], targetPointer = [0, 0];
@@ -29,10 +28,8 @@ function applyPreference() {
 }
 control?.addEventListener('click', () => {
   paused = !paused;
-  try { localStorage.setItem('cpslab-motion', paused ? 'off' : 'on'); } catch { /* Storage is optional. */ }
   applyPreference();
 });
-reduced.addEventListener('change', event => { paused = event.matches; applyPreference(); });
 applyPreference();
 
 // Reveal with Web Animations: the HTML is never left hidden if a script fails.
@@ -85,7 +82,7 @@ function render(now) {
   let target = 0;
   if (story && stage) {
     const r = story.getBoundingClientRect();
-    target = scrollProgress(r.top - 76, r.height, stage.clientHeight);
+    target = scrollProgress(r.top - (document.querySelector('.site-header')?.offsetHeight || 76), r.height, stage.clientHeight);
     smoothScroll += (target - smoothScroll) * Math.min(1, dt * 9);
     stage.style.setProperty('--scatter', String(smoothScroll));
     stage.style.setProperty('--assemble', String(1 - clamp(smoothScroll * 2.6)));
@@ -104,11 +101,22 @@ window.addEventListener('pointermove', event => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { cancelAnimationFrame(frame); frame = 0; } else requestFrame();
 });
-window.addEventListener('pageshow', requestFrame);
+function wakeVisibleScenes() {
+  scenes.forEach(scene => {
+    const r = scene.host.getBoundingClientRect();
+    scene.visible = r.bottom > 0 && r.top < window.innerHeight + 80;
+  });
+  requestFrame();
+}
+window.addEventListener('pageshow', wakeVisibleScenes);
+window.addEventListener('scroll', wakeVisibleScenes, { passive: true });
+window.addEventListener('touchstart', wakeVisibleScenes, { passive: true });
 
 async function initialize() {
   // Use the same locally hosted typeface for the solid fallback and particle logo.
-  await Promise.race([document.fonts.load('800 260px Manrope'), new Promise(resolve => setTimeout(resolve, 1600))]);
+  try {
+    await Promise.race([document.fonts?.load('800 260px Manrope'), new Promise(resolve => setTimeout(resolve, 1600))]);
+  } catch { /* A blocked font must not prevent animation startup. */ }
   let logo = [];
   if (story) {
     const bitmap = document.createElement('canvas'); bitmap.width = 1800; bitmap.height = 440;
@@ -131,11 +139,24 @@ async function initialize() {
     try {
       const kind = host.dataset.particles;
       if (kind === 'logo' && !logo.length) continue;
-      const scene = new ParticleScene(host, kind, makeGeometry(kind, coarse.matches ? 900 : 1800, logo));
+      const geometry = makeGeometry(kind, coarse.matches ? 900 : 1800, logo);
+      let scene;
+      try { scene = new ParticleScene(host, kind, geometry); }
+      catch { scene = new CanvasParticleScene(host, kind, geometry); }
       scenes.push(scene); observer?.observe(host);
-      if (!observer) scene.visible = true;
+      const initialRect = host.getBoundingClientRect();
+      scene.visible = initialRect.bottom > 0 && initialRect.top < window.innerHeight + 80;
       scene.draw({ intro: paused ? 1 : 0 });
-      host.querySelector('canvas').addEventListener('webglcontextlost', () => { if (kind === 'logo') root.classList.remove('logo-webgl'); });
+      host.querySelector('canvas').addEventListener('webglcontextlost', () => {
+        const index = scenes.indexOf(scene);
+        try {
+          const replacement = new CanvasParticleScene(host, kind, geometry);
+          replacement.visible = scene.visible; scene.canvas.remove();
+          scenes[index] = replacement; scene = replacement;
+          replacement.draw({ time: elapsed, scatter: kind === 'logo' ? smoothScroll : 0 });
+          requestFrame();
+        } catch { if (kind === 'logo') root.classList.remove('logo-webgl'); }
+      }, { once: true });
       host.querySelector('canvas').addEventListener('webglcontextrestored', () => { if (kind === 'logo') root.classList.add('logo-webgl'); requestFrame(); });
     } catch (error) { console.info('CPSLAB: showing static artwork.', error.message); }
   }

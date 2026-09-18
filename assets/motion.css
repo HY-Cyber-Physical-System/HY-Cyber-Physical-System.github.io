@@ -103,8 +103,11 @@
 .motion-off *,.motion-off *:before,.motion-off *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 .motion-off .tilting{transform:none!important}
 @media(prefers-reduced-motion:reduce){
- html{scroll-behavior:auto}.logo-story{height:auto}.logo-stage{position:relative;top:0;height:calc(100svh - 76px)}.scatter-message{display:none}.scene-bottom{opacity:1;transform:none}
- *,*:before,*:after{animation:none!important;transition:none!important}.tilting{transform:none!important}
+ html:not(.motion-ready){scroll-behavior:auto}html:not(.motion-ready) .logo-story{height:auto}html:not(.motion-ready) .logo-stage{position:relative;top:0;height:calc(100svh - 76px)}html:not(.motion-ready) .scatter-message{display:none}html:not(.motion-ready) .scene-bottom{opacity:1;transform:none}
+ html:not(.motion-ready) *,html:not(.motion-ready) *:before,html:not(.motion-ready) *:after{animation:none!important;transition:none!important}
 }
 
 @media(max-height:600px){.logo-stage{min-height:0}.scene-description{display:none}.scene-bottom{display:flex;bottom:18px}.scene-topline{top:18px}.scatter-message p:first-child{font-size:clamp(1.7rem,5vw,3rem)}}
+
+/* Keep the motion control away from the mobile intro links and safe-area edge. */
+@media(max-width:780px){.scene-bottom{bottom:80px}.motion-toggle{bottom:max(12px,env(safe-area-inset-bottom))}}

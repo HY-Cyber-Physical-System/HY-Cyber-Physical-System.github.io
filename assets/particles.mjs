@@ -119,7 +119,10 @@ export class ParticleScene {
       premultipliedAlpha: false, powerPreference: 'low-power',
     });
     if (!this.gl) { this.canvas.remove(); throw new Error('WebGL is unavailable'); }
-    this.initialize();
+    try { this.initialize(); } catch (error) {
+      this.canvas.remove(); this.gl.getExtension('WEBGL_lose_context')?.loseContext(); throw error;
+    }
+    host.dataset.renderer = 'webgl';
     this.canvas.addEventListener('webglcontextlost', event => {
       event.preventDefault(); this.lost = true; host.classList.remove('webgl-ready');
     });
@@ -174,5 +177,59 @@ export class ParticleScene {
     gl.uniform1f(u.uIntro, intro); gl.uniform2f(u.uPointer, pointer[0], pointer[1]);
     gl.drawArrays(gl.POINTS, 0, this.geometry.count);
     this.host.classList.add('webgl-ready');
+  }
+}
+
+// Software projection of the same 3D point clouds when a mobile WebView denies WebGL.
+export class CanvasParticleScene {
+  constructor(host, kind, geometry) {
+    this.host = host; this.kind = kind; this.geometry = geometry;
+    this.visible = false; this.lost = false;
+    this.canvas = document.createElement('canvas');
+    this.canvas.className = 'particle-canvas'; this.canvas.setAttribute('aria-hidden', 'true');
+    this.context = this.canvas.getContext('2d', { alpha: true });
+    if (!this.context) throw new Error('Canvas rendering is unavailable');
+    host.prepend(this.canvas); host.dataset.renderer = 'canvas2d';
+    this.stride = Math.max(1, Math.ceil(geometry.count / (kind === 'logo' ? 2800 : 700)));
+    this.resize();
+  }
+  resize() {
+    const rect = this.host.getBoundingClientRect();
+    this.width = Math.max(1, rect.width); this.height = Math.max(1, rect.height);
+    this.dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    this.canvas.width = Math.round(this.width * this.dpr); this.canvas.height = Math.round(this.height * this.dpr);
+  }
+  draw({ time = 0, scatter = 0, pointer = [0, 0], intro = 1 } = {}) {
+    const ctx = this.context, g = this.geometry, logo = this.kind === 'logo';
+    const aspect = this.width / this.height;
+    const scale = logo ? Math.min(1.15, aspect * 0.64) : Math.min(1, aspect * 0.95);
+    const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+    const spread = smooth(0.02, 0.88, scatter), alpha = (1 - smooth(0.78, 1, scatter)) * intro;
+    const ry = (logo ? 0.12 + Math.sin(time * 0.3) * 0.1 : time * 0.12) + pointer[0] * 0.15;
+    const rx = (logo ? -0.06 : 0.34) + pointer[1] * 0.08;
+    const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx);
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.clearRect(0, 0, this.width, this.height);
+    ctx.fillStyle = '#fff';
+    for (let n = 0; n < g.count; n += this.stride) {
+      const i = n * 3, seed = g.seeds[i], second = g.seeds[i + 1], third = g.seeds[i + 2];
+      let x = g.positions[i], y = g.positions[i + 1], z = g.positions[i + 2];
+      y += Math.sin(time * 0.45 + seed * Math.PI * 2) * (logo ? 0.024 : 0.13);
+      if (this.kind === 'wave') y += Math.sin(x * 1.5 + z * 1.3 + time * 0.7) * 0.35;
+      const amount = clamp(spread * (0.7 + second * 0.65), 0, 1.25);
+      x += g.bursts[i] * amount; y += g.bursts[i + 1] * amount; z += g.bursts[i + 2] * amount;
+      const swirl = amount * (1 + third) * 1.3, cs = Math.cos(swirl), ss = Math.sin(swirl);
+      [x, y] = [cs * x + ss * y, -ss * x + cs * y];
+      [x, z] = [cy * x + sy * z, -sy * x + cy * z];
+      [y, z] = [cx * y + sx * z, -sx * y + cx * z];
+      x *= scale; y *= scale; z *= scale;
+      const depth = Math.max(0.8, 8 - z);
+      const px = this.width * 0.5 + x * 2.5 / aspect / depth * this.width * 0.5;
+      const py = this.height * 0.5 - y * 2.5 / depth * this.height * 0.5;
+      const size = clamp((1.4 + seed * 1.7) * 7 / depth, 0.7, 8);
+      if (px < -size || px > this.width + size || py < -size || py > this.height + size) continue;
+      ctx.globalAlpha = (0.48 + second * 0.52) * alpha;
+      ctx.fillRect(px - size / 2, py - size / 2, size, size);
+    }
+    ctx.globalAlpha = 1; this.host.classList.add('webgl-ready');
   }
 }

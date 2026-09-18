@@ -4,9 +4,19 @@ Python standard library only. No network or server runtime required.
 """
 from pathlib import Path
 from html import escape
-import json, re
+import json, re, hashlib
 
 ROOT=Path(__file__).resolve().parents[1]
+# Content-address browser assets, including the ESM dependency, on every build.
+particle_version = hashlib.sha256((ROOT/'assets/particles.mjs').read_bytes()).hexdigest()[:12]
+motion_path = ROOT/'assets/motion.mjs'
+motion_source = motion_path.read_text()
+updated_motion = re.sub(r"from './particles\.mjs(?:\?v=[a-f0-9]+)?'", "from './particles.mjs?v=" + particle_version + "'", motion_source)
+if updated_motion != motion_source:
+    motion_path.write_text(updated_motion)
+def asset(path):
+    version = hashlib.sha256((ROOT/path.lstrip('/')).read_bytes()).hexdigest()[:12]
+    return path + '?v=' + version
 D=json.loads((ROOT/'content/site.json').read_text())
 SITE='https://hy-cyber-physical-system.github.io'
 NAV=[('Research','/research/'),('People','/members/'),('Publications','/publications/'),('Projects','/projects/'),('Courses','/courses/'),('Album','/albums/')]
@@ -38,7 +48,7 @@ def page(path,title,description,body):
     target.parent.mkdir(parents=True,exist_ok=True)
     full_title=f'{title} | CPSLAB · Hanyang University' if path!='/' else 'CPSLAB | Cyber-Physical Systems Laboratory · Hanyang University'
     target.write_text(f'''<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#050506"><title>{e(full_title)}</title><meta name="description" content="{e(description)}"><link rel="canonical" href="{SITE}{path}"><meta property="og:type" content="website"><meta property="og:title" content="{e(full_title)}"><meta property="og:description" content="{e(description)}"><meta property="og:url" content="{SITE}{path}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/site.css"><link rel="stylesheet" href="/assets/motion.css"><script src="/assets/site.js" defer></script><script type="module" src="/assets/motion.mjs"></script></head><body>{header(path)}<main id="main">{body}</main>{FOOTER}<button class="motion-toggle" type="button" aria-pressed="false" hidden>Pause motion</button></body></html>\n''')
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#050506"><title>{e(full_title)}</title><meta name="description" content="{e(description)}"><link rel="canonical" href="{SITE}{path}"><meta property="og:type" content="website"><meta property="og:title" content="{e(full_title)}"><meta property="og:description" content="{e(description)}"><meta property="og:url" content="{SITE}{path}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="{asset('/assets/site.css')}"><link rel="stylesheet" href="{asset('/assets/motion.css')}"><script src="{asset('/assets/site.js')}" defer></script><script type="module" src="{asset('/assets/motion.mjs')}"></script></head><body>{header(path)}<main id="main">{body}</main>{FOOTER}<button class="motion-toggle" type="button" aria-pressed="false" hidden>Pause motion</button></body></html>\n''')
 
 def heading(kicker,title,description):
     return f'<div class="page-heading"><div class="heading-particles" data-particles="rings" aria-hidden="true"></div><div class="wrap"><div class="eyebrow">{e(kicker)}</div><h1>{e(title)}</h1><p>{e(description)}</p></div></div>'
