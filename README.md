@@ -40,6 +40,8 @@ The original site's author names, dates, project classifications, historical ent
 
 ## WebGL motion
 
+The logo keeps moving without scrolling or pointer input: bounded 3D rotation, floating and breathing, a traveling depth ripple, and a small stream of particles dispersing and returning. Scrolling adds the full scatter effect. The same idle motion runs in the Canvas fallback.
+
 The first screen is a black, scroll-linked 3D particle wordmark. White points are sampled from the locally hosted CPSLAB typeface and given depth. Native scrolling disperses the logo through a swirling 3D field; reverse scrolling reassembles it. The research cards show a wave surface, a rotating sphere, and orbital rings. A second wave field sits behind the contact section, and inner pages use a rotating particle heading.
 
 - `assets/particles.mjs`: WebGL 1 shaders, seeded geometry, point sampling, context recovery, and renderer.

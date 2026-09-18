@@ -1,4 +1,4 @@
-import { ParticleScene, CanvasParticleScene, makeGeometry, sampleLogo, clamp, scrollProgress } from './particles.mjs?v=90543d0e22aa';
+import { ParticleScene, CanvasParticleScene, makeGeometry, sampleLogo, clamp, scrollProgress } from './particles.mjs?v=e8264a490913';
 
 const coarse = matchMedia('(pointer: coarse)');
 const root = document.documentElement;

@@ -78,17 +78,24 @@ varying mediump float vShade;
 void main() {
   float spread = smoothstep(0.02, 0.88, uScatter);
   vec3 p = aPosition;
-  float drift = sin(uTime * 0.45 + aSeed.x * 6.2831);
-  p.y += drift * mix(0.13, 0.024, uLogo);
+  float drift = sin(uTime * 0.85 + aSeed.x * 6.2831);
+  p.y += drift * mix(0.13, 0.055, uLogo);
+  // Keep the wordmark alive at rest: a traveling depth wave and loose edge dust.
+  p.z += uLogo * sin(p.x * 1.7 - uTime * 1.4) * 0.16;
   p.y += uWave * sin(p.x * 1.5 + p.z * 1.3 + uTime * 0.7) * 0.35;
-  float localSpread = clamp(spread * (0.7 + aSeed.y * 0.65), 0.0, 1.25);
+  float idleDust = uLogo * smoothstep(0.90, 0.97, aSeed.z)
+    * (0.025 + 0.10 * (0.5 + 0.5 * sin(uTime * 1.15 + aSeed.x * 6.2831)));
+  float localSpread = clamp(spread * (0.7 + aSeed.y * 0.65) + idleDust * (1.0 - spread), 0.0, 1.25);
   p += aBurst * localSpread;
   float swirl = localSpread * (1.0 + aSeed.z) * 1.3;
   p.xy = mat2(cos(swirl), -sin(swirl), sin(swirl), cos(swirl)) * p.xy;
-  float ry = mix(uTime * 0.12, 0.12 + sin(uTime * 0.3) * 0.10, uLogo) + uPointer.x * 0.15;
-  float rx = mix(0.34, -0.06, uLogo) + uPointer.y * 0.08;
+  float ry = mix(uTime * 0.20, 0.12 + sin(uTime * 0.70) * 0.32, uLogo) + uPointer.x * 0.15;
+  float rx = mix(0.34, -0.06 + sin(uTime * 0.90) * 0.14, uLogo) + uPointer.y * 0.08;
   p.xz = mat2(cos(ry), -sin(ry), sin(ry), cos(ry)) * p.xz;
   p.yz = mat2(cos(rx), -sin(rx), sin(rx), cos(rx)) * p.yz;
+  p *= 1.0 + uLogo * sin(uTime * 1.05) * 0.035;
+  p.x += uLogo * sin(uTime * 0.65) * 0.10;
+  p.y += uLogo * sin(uTime * 1.05) * 0.22;
   p *= mix(min(1.0, uAspect * 0.95), min(1.15, uAspect * 0.64), uLogo);
   float depth = max(0.8, 8.0 - p.z);
   gl_Position = vec4(p.x * 2.5 / uAspect, p.y * 2.5, depth - 0.1, depth);
@@ -205,23 +212,31 @@ export class CanvasParticleScene {
     const scale = logo ? Math.min(1.15, aspect * 0.64) : Math.min(1, aspect * 0.95);
     const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
     const spread = smooth(0.02, 0.88, scatter), alpha = (1 - smooth(0.78, 1, scatter)) * intro;
-    const ry = (logo ? 0.12 + Math.sin(time * 0.3) * 0.1 : time * 0.12) + pointer[0] * 0.15;
-    const rx = (logo ? -0.06 : 0.34) + pointer[1] * 0.08;
+    const ry = (logo ? 0.12 + Math.sin(time * 0.70) * 0.32 : time * 0.20) + pointer[0] * 0.15;
+    const rx = (logo ? -0.06 + Math.sin(time * 0.90) * 0.14 : 0.34) + pointer[1] * 0.08;
+    const breathe = logo ? 1 + Math.sin(time * 1.05) * 0.035 : 1;
+    const floatX = logo ? Math.sin(time * 0.65) * 0.10 : 0;
+    const floatY = logo ? Math.sin(time * 1.05) * 0.22 : 0;
     const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx);
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.clearRect(0, 0, this.width, this.height);
     ctx.fillStyle = '#fff';
     for (let n = 0; n < g.count; n += this.stride) {
       const i = n * 3, seed = g.seeds[i], second = g.seeds[i + 1], third = g.seeds[i + 2];
       let x = g.positions[i], y = g.positions[i + 1], z = g.positions[i + 2];
-      y += Math.sin(time * 0.45 + seed * Math.PI * 2) * (logo ? 0.024 : 0.13);
+      y += Math.sin(time * 0.85 + seed * Math.PI * 2) * (logo ? 0.055 : 0.13);
+      if (logo) z += Math.sin(x * 1.7 - time * 1.4) * 0.16;
       if (this.kind === 'wave') y += Math.sin(x * 1.5 + z * 1.3 + time * 0.7) * 0.35;
-      const amount = clamp(spread * (0.7 + second * 0.65), 0, 1.25);
+      const idleDust = logo ? smooth(0.90, 0.97, third)
+        * (0.025 + 0.10 * (0.5 + 0.5 * Math.sin(time * 1.15 + seed * Math.PI * 2))) : 0;
+      const amount = clamp(spread * (0.7 + second * 0.65) + idleDust * (1 - spread), 0, 1.25);
       x += g.bursts[i] * amount; y += g.bursts[i + 1] * amount; z += g.bursts[i + 2] * amount;
       const swirl = amount * (1 + third) * 1.3, cs = Math.cos(swirl), ss = Math.sin(swirl);
       [x, y] = [cs * x + ss * y, -ss * x + cs * y];
       [x, z] = [cy * x + sy * z, -sy * x + cy * z];
       [y, z] = [cx * y + sx * z, -sx * y + cx * z];
-      x *= scale; y *= scale; z *= scale;
+      x = (x * breathe + floatX) * scale;
+      y = (y * breathe + floatY) * scale;
+      z *= breathe * scale;
       const depth = Math.max(0.8, 8 - z);
       const px = this.width * 0.5 + x * 2.5 / aspect / depth * this.width * 0.5;
       const py = this.height * 0.5 - y * 2.5 / depth * this.height * 0.5;
